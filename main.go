@@ -22,8 +22,6 @@ const (
 	SUCCESS = iota
 	TOTALSIZE = iota
 	PROGRESS = iota
-	SKIP = iota
-	HTTPSTATUS = iota
 )
 
 const CHUNK_SIZE = 4096
@@ -100,10 +98,8 @@ func runDownload(channel chan ProgressUpdate, id int, url string, out *os.File,
 		return
 	}
 
-	channel <- ProgressUpdate{id, HTTPSTATUS, int64(resp.StatusCode), nil}
 	if resp.StatusCode == http.StatusOK {
 		channel <- ProgressUpdate{id, TOTALSIZE, resp.ContentLength, nil}
-		channel <- ProgressUpdate{id, SKIP, initSize, nil}
 		skipAhead(channel, id, resp.Body, initSize)
 		downloadFile(channel, id, resp.Body, out, initSize)
 	} else if resp.StatusCode == http.StatusPartialContent {
@@ -173,12 +169,8 @@ func main () {
 		case ERROR:
 			fmt.Println(update.err)
 			os.Exit(-1)
-		case HTTPSTATUS:
-			fmt.Printf("HTTP status %d\n", update.amount)
 		case TOTALSIZE:
 			totalAmount = update.amount
-		case SKIP:
-			fmt.Printf("Skipping ahead by %d\n", update.amount)
 		case PROGRESS:
 			fmt.Printf("%d of %d bytes downloaded\n", update.amount, totalAmount)
 		}
