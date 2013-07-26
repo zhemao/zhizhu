@@ -72,15 +72,24 @@ func downloadFile(channel chan ProgressUpdate, id int, body io.Reader,
 	}
 }
 
-func runDownload(channel chan ProgressUpdate, id int, url string, out *os.File, initSize int64) {
-	client := &http.Client{}
+func runDownload(channel chan ProgressUpdate, id int, url string, out *os.File, 
+					initSize int64) {
+	defer out.Close()
+	client := &http.Client{
+		CheckRedirect: func (req *http.Request, via []*http.Request) error {
+			if initSize > 0 {
+				req.Header.Add("Range", fmt.Sprintf("bytes=%d-", initSize))
+			}
+			return nil
+		},
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		channel <- ProgressUpdate{id, ERROR, 0, err}
 		return
 	}
-	
+
 	if initSize > 0 {
 		req.Header.Add("Range", fmt.Sprintf("bytes=%d-", initSize))
 	}
@@ -144,7 +153,9 @@ func main () {
 		}
 	}
 
-	fmt.Printf("Initial size is %d\n", initSize)
+	if initSize > 0 {
+		fmt.Printf("Resuming download at %d bytes\n", initSize)
+	}
 
 	updateChan := make(chan ProgressUpdate)
 	totalAmount := int64(0)
