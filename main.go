@@ -28,7 +28,8 @@ const (
 
 const CHUNK_SIZE = 4096
 
-func skipAhead(channel chan ProgressUpdate, id int, body io.Reader, skipAmount int64) error {
+func skipAhead(channel chan ProgressUpdate, id int, body io.Reader,
+				skipAmount int64) error {
 	dlAmount := int64(0)
 	buf := make([]byte, CHUNK_SIZE)
 	limited := io.LimitReader(body, skipAmount)
@@ -45,7 +46,8 @@ func skipAhead(channel chan ProgressUpdate, id int, body io.Reader, skipAmount i
 	return nil
 }
 
-func downloadFile(channel chan ProgressUpdate, id int, body io.Reader, out *os.File, initSize int64) {
+func downloadFile(channel chan ProgressUpdate, id int, body io.Reader,
+					out *os.File, initSize int64) {
 	buf := make([]byte, CHUNK_SIZE)
 	dlAmount := initSize
 	for {
