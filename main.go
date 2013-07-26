@@ -123,7 +123,8 @@ func main () {
 	}
 
 	url := os.Args[1]
-	outfname := os.Args[2]
+	actualfname := os.Args[2]
+	outfname := actualfname + ".part"
 
 	file, err := os.Open(outfname)
 
@@ -166,7 +167,8 @@ func main () {
 		update := <-updateChan
 		switch update.messType {
 		case SUCCESS:
-			fmt.Printf("%s finished downloading\n", outfname)
+			os.Rename(outfname, actualfname)
+			fmt.Printf("%s finished downloading\n", actualfname)
 			return
 		case ERROR:
 			fmt.Println(update.err)
