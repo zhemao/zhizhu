@@ -70,7 +70,7 @@ func makeHttpRequest(url string, initSize int64) (*http.Response, error) {
 	return resp, err
 }
 
-func runDownload(channel chan ProgressUpdate, id int, dlreq *DownloadRequest) {
+func runDownload(channel chan ProgressUpdate, id int, dlreq DownloadRequest) {
 	var out *os.File
 	var err error
 	if dlreq.initSize == 0 {
@@ -95,10 +95,12 @@ func runDownload(channel chan ProgressUpdate, id int, dlreq *DownloadRequest) {
 		channel <- ProgressUpdate{id, TOTALSIZE, resp.ContentLength, nil}
 		skipAhead(channel, id, resp.Body, dlreq.initSize)
 		downloadFile(channel, id, resp.Body, out, dlreq.initSize)
+		os.Rename(dlreq.outfname, dlreq.actualfname)
 	} else if resp.StatusCode == http.StatusPartialContent {
 		totalSize := resp.ContentLength + dlreq.initSize
 		channel <- ProgressUpdate{id, TOTALSIZE, totalSize, nil}
 		downloadFile(channel, id, resp.Body, out, dlreq.initSize)
+		os.Rename(dlreq.outfname, dlreq.actualfname)
 	} else {
 		err := errors.New(resp.Status)
 		channel <- ProgressUpdate{id, ERROR, 0, err}

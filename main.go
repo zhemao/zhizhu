@@ -17,6 +17,15 @@ func exitProgram() {
 	}
 }
 
+func allDone(statii *[]DownloadStatus) bool {
+	for _, stat := range *statii {
+		if !stat.done {
+			return false
+		}
+	}
+	return true
+}
+
 func main () {
 	if len(os.Args) < 2 {
 		fmt.Printf("Usage: %s request-file\n", os.Args[0])
@@ -38,31 +47,35 @@ func main () {
 
 	displayPrintf(0, "Zhizhu Download Manager v%s\n", version)
 
+	statii := make([]DownloadStatus, len(requests))
+
 	for i, dlreq := range requests {
-		go runDownload(updateChan, i, &dlreq)
+		go runDownload(updateChan, i, dlreq)
+		displayPrintf(i + 1, "Starting download of %s\n", dlreq.actualfname)
+		statii[i] = DownloadStatus{dlreq.url, dlreq.actualfname, 0, 0, false}
 	}
 	go listenKeyEvents(updateChan)
 
-	totalAmounts := make([]int64, len(requests))
 
 	for {
 		update := <-updateChan
 
-		//termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 		switch update.messType {
 		case SUCCESS:
-			outfname := requests[update.id].outfname
 			actualfname := requests[update.id].actualfname
-			os.Rename(outfname, actualfname)
 			displayPrintf(update.id, "%s finished downloading\n", actualfname)
-			return
+			statii[update.id].done = true
+			if allDone(&statii) {
+				return
+			}
 		case ERROR:
 			displayPrintln(update.id + 1, update.err)
 			os.Exit(-1)
 		case TOTALSIZE:
-			totalAmounts[update.id] = update.amount
+			statii[update.id].totalAmount = update.amount
 		case PROGRESS:
-			displayProgress(update.id + 1, update.amount, totalAmounts[update.id])
+			statii[update.id].dlAmount = update.amount
+			displayProgress(update.id + 1, &(statii[update.id]))
 		case QUIT:
 			return
 		}

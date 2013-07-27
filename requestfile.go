@@ -49,7 +49,7 @@ func loadRequests(reqFileName string) []DownloadRequest {
 		} else {
 			fname = cols[1]
 		}
-		table.Append(makeRequest(url, fname))
+		table = append(table, makeRequest(url, fname))
 	}
 	return table
 }

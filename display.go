@@ -48,10 +48,11 @@ func displayPrintf(row int, format string, args...interface{}) {
 	displayString(row, rowStr)
 }
 
-func displayProgress(id int, dlAmount int64, totalSize int64) {
-	percent := dlAmount * 100 / totalSize
-	displayPrintf(id, "%d%% | %s of %s downloaded\n",
-					percent,
-					displaySize(dlAmount),
-					displaySize(totalSize))
+func displayProgress(id int, status *DownloadStatus) {
+	percent := status.dlAmount * 100 / status.totalAmount
+	displayPrintf(id, "%s %d%% | %s of %s downloaded\n",
+				  status.fname,
+				  percent,
+				  displaySize(status.dlAmount),
+				  displaySize(status.totalAmount))
 }
