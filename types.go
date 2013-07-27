@@ -5,6 +5,7 @@ const (
 	ERROR = iota
 	TOTALSIZE = iota
 	PROGRESS = iota
+	QUIT = iota
 )
 
 type ProgressUpdate struct {
@@ -12,4 +13,11 @@ type ProgressUpdate struct {
 	messType int
 	amount int64
 	err error
+}
+
+type DownloadRequest struct {
+	url string
+	outfname string
+	actualfname string
+	initSize int64
 }

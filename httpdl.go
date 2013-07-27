@@ -48,9 +48,7 @@ func downloadFile(channel chan ProgressUpdate, id int, body io.Reader,
 	}
 }
 
-func runDownload(channel chan ProgressUpdate, id int, url string, out *os.File, 
-					initSize int64) {
-	defer out.Close()
+func makeHttpRequest(url string, initSize int64) (*http.Response, error) {
 	client := &http.Client{
 		CheckRedirect: func (req *http.Request, via []*http.Request) error {
 			if initSize > 0 {
@@ -59,11 +57,9 @@ func runDownload(channel chan ProgressUpdate, id int, url string, out *os.File,
 			return nil
 		},
 	}
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		channel <- ProgressUpdate{id, ERROR, 0, err}
-		return
+		return nil, err
 	}
 
 	if initSize > 0 {
@@ -71,6 +67,25 @@ func runDownload(channel chan ProgressUpdate, id int, url string, out *os.File,
 	}
 
 	resp, err := client.Do(req)
+	return resp, err
+}
+
+func runDownload(channel chan ProgressUpdate, id int, dlreq *DownloadRequest) {
+	var out *os.File
+	var err error
+	if dlreq.initSize == 0 {
+		out, err = os.Create(dlreq.outfname)
+	} else {
+		out, err = os.OpenFile(dlreq.outfname, os.O_WRONLY | os.O_APPEND, 0644)
+	}
+	if err != nil {
+		channel <- ProgressUpdate{id, ERROR, 0, err}
+		return
+	}
+	defer out.Close()
+
+	resp, err := makeHttpRequest(dlreq.url, dlreq.initSize)
+
 	if err != nil {
 		channel <- ProgressUpdate{id, ERROR, 0, err}
 		return
@@ -78,12 +93,12 @@ func runDownload(channel chan ProgressUpdate, id int, url string, out *os.File,
 
 	if resp.StatusCode == http.StatusOK {
 		channel <- ProgressUpdate{id, TOTALSIZE, resp.ContentLength, nil}
-		skipAhead(channel, id, resp.Body, initSize)
-		downloadFile(channel, id, resp.Body, out, initSize)
+		skipAhead(channel, id, resp.Body, dlreq.initSize)
+		downloadFile(channel, id, resp.Body, out, dlreq.initSize)
 	} else if resp.StatusCode == http.StatusPartialContent {
-		totalSize := resp.ContentLength + initSize
+		totalSize := resp.ContentLength + dlreq.initSize
 		channel <- ProgressUpdate{id, TOTALSIZE, totalSize, nil}
-		downloadFile(channel, id, resp.Body, out, initSize)
+		downloadFile(channel, id, resp.Body, out, dlreq.initSize)
 	} else {
 		err := errors.New(resp.Status)
 		channel <- ProgressUpdate{id, ERROR, 0, err}

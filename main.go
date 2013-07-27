@@ -3,72 +3,69 @@ package main
 import (
 	"fmt"
 	"os"
+	"github.com/nsf/termbox-go"
 )
 
 const version string = "0.1.0"
 
+func exitProgram() {
+	if r := recover(); r != nil {
+		fmt.Println(r)
+		os.Exit(-1)
+	} else {
+		os.Exit(0)
+	}
+}
+
 func main () {
-	fmt.Printf("Zhizhu Download Manager v%s\n", version)
-	if len(os.Args) < 3 {
-		fmt.Printf("Usage: %s url output-file\n", os.Args[0])
+	if len(os.Args) < 2 {
+		fmt.Printf("Usage: %s request-file\n", os.Args[0])
 		os.Exit(-1)
 	}
 
-	url := os.Args[1]
-	actualfname := os.Args[2]
-	outfname := actualfname + ".part"
+	defer exitProgram()
 
-	file, err := os.Open(outfname)
-
-	initSize := int64(0)
-
-	if err != nil {
-		if !os.IsNotExist(err) {
-			fmt.Println(err)
-			os.Exit(-1)
-		}
-		file, err = os.Create(outfname)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
-		}
-	} else {
-		initSize, err = file.Seek(0, os.SEEK_END)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
-		}
-		file.Close();
-		file, err = os.OpenFile(outfname, os.O_APPEND | os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
-		}
-	}
-
-	if initSize > 0 {
-		fmt.Printf("Resuming download at %d bytes\n", initSize)
-	}
+	reqFileName := os.Args[1]
+	requests := loadRequests(reqFileName)
 
 	updateChan := make(chan ProgressUpdate)
-	totalAmount := int64(0)
 
-	go runDownload(updateChan, 0 ,url, file, initSize)
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+
+	displayPrintf(0, "Zhizhu Download Manager v%s\n", version)
+
+	for i, dlreq := range requests {
+		go runDownload(updateChan, i, &dlreq)
+	}
+	go listenKeyEvents(updateChan)
+
+	totalAmounts := make([]int64, len(requests))
 
 	for {
 		update := <-updateChan
+
+		//termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 		switch update.messType {
 		case SUCCESS:
+			outfname := requests[update.id].outfname
+			actualfname := requests[update.id].actualfname
 			os.Rename(outfname, actualfname)
-			fmt.Printf("%s finished downloading\n", actualfname)
+			displayPrintf(update.id, "%s finished downloading\n", actualfname)
 			return
 		case ERROR:
-			fmt.Println(update.err)
+			displayPrintln(update.id + 1, update.err)
 			os.Exit(-1)
 		case TOTALSIZE:
-			totalAmount = update.amount
+			totalAmounts[update.id] = update.amount
 		case PROGRESS:
-			fmt.Printf("%d of %d bytes downloaded\n", update.amount, totalAmount)
+			displayProgress(update.id + 1, update.amount, totalAmounts[update.id])
+		case QUIT:
+			return
 		}
+		termbox.Flush()
 	}
 }
