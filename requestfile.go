@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"strings"
 	"path"
+	"fmt"
 )
 
 func makeRequest(url string, basename string) (DownloadRequest, error) {
@@ -57,4 +58,19 @@ func loadRequests(reqFileName string) ([]DownloadRequest, error) {
 		table = append(table, req)
 	}
 	return table, nil
+}
+func cleanupReqFile(reqFileName string,
+					requests *[]DownloadRequest,
+					finished *[]bool) {
+	reqFile, err := os.Create(reqFileName)
+	if err != nil {
+		panic(err)
+	}
+	for i, req := range *requests {
+		if !(*finished)[i] {
+			fmt.Fprintf(reqFile, "%s %s\n", req.url, req.basename)
+		}
+	}
+	reqFile.Close()
+
 }
