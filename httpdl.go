@@ -10,6 +10,20 @@ import (
 
 const CHUNK_SIZE = 4096
 
+func finishDownload(channel chan ProgressUpdate, id int,
+					dlreq DownloadRequest, err error) {
+	if err != nil {
+		channel <- ProgressUpdate{id, ERROR, 0, err}
+		return
+	}
+	err = os.Rename(dlreq.outpath, dlreq.actualpath)
+	if err != nil {
+		channel <- ProgressUpdate{id, ERROR, 0, err}
+	} else {
+		channel <- ProgressUpdate{id, SUCCESS, 0, nil}
+	}
+}
+
 func skipAhead(channel chan ProgressUpdate, id int, body io.Reader,
 				skipAmount int64) error {
 	dlAmount := int64(0)
@@ -29,7 +43,7 @@ func skipAhead(channel chan ProgressUpdate, id int, body io.Reader,
 }
 
 func downloadFile(channel chan ProgressUpdate, id int, body io.Reader,
-					out *os.File, initSize int64) {
+					out *os.File, initSize int64) error {
 	dlAmount := initSize
 	for {
 		n, err := io.CopyN(out, body, CHUNK_SIZE)
@@ -39,11 +53,9 @@ func downloadFile(channel chan ProgressUpdate, id int, body io.Reader,
 		}
 
 		if err == io.EOF {
-			channel <- ProgressUpdate{id, SUCCESS, 0, nil}
-			return
+			return nil
 		} else if err != nil {
-			channel <- ProgressUpdate{id, ERROR, 0, err}
-			return
+			return err
 		}
 	}
 }
@@ -72,11 +84,20 @@ func makeHttpRequest(url string, initSize int64) (*http.Response, error) {
 
 func runDownload(channel chan ProgressUpdate, id int, dlreq DownloadRequest) {
 	var out *os.File
-	var err error
+
+	// if the file has already been downloaded, do nothing
+	_, err := os.Stat(dlreq.actualpath)
+	if err == nil {
+		channel <- ProgressUpdate{id, SUCCESS, 0, nil}
+		return
+	}
+
+	// if we're starting fresh, create new file
 	if dlreq.initSize == 0 {
-		out, err = os.Create(dlreq.outfname)
+		out, err = os.Create(dlreq.outpath)
 	} else {
-		out, err = os.OpenFile(dlreq.outfname, os.O_WRONLY | os.O_APPEND, 0644)
+		// otherwise, append to the old one
+		out, err = os.OpenFile(dlreq.outpath, os.O_WRONLY | os.O_APPEND, 0644)
 	}
 	if err != nil {
 		channel <- ProgressUpdate{id, ERROR, 0, err}
@@ -92,15 +113,23 @@ func runDownload(channel chan ProgressUpdate, id int, dlreq DownloadRequest) {
 	}
 
 	if resp.StatusCode == http.StatusOK {
+		if resp.ContentLength == dlreq.initSize {
+			finishDownload(channel, id, dlreq, nil)
+			return
+		}
 		channel <- ProgressUpdate{id, TOTALSIZE, resp.ContentLength, nil}
 		skipAhead(channel, id, resp.Body, dlreq.initSize)
-		downloadFile(channel, id, resp.Body, out, dlreq.initSize)
-		os.Rename(dlreq.outfname, dlreq.actualfname)
+		err := downloadFile(channel, id, resp.Body, out, dlreq.initSize)
+		finishDownload(channel, id, dlreq, err)
 	} else if resp.StatusCode == http.StatusPartialContent {
 		totalSize := resp.ContentLength + dlreq.initSize
+		if totalSize == 0 {
+			finishDownload(channel, id, dlreq, nil)
+			return
+		}
 		channel <- ProgressUpdate{id, TOTALSIZE, totalSize, nil}
-		downloadFile(channel, id, resp.Body, out, dlreq.initSize)
-		os.Rename(dlreq.outfname, dlreq.actualfname)
+		err := downloadFile(channel, id, resp.Body, out, dlreq.initSize)
+		finishDownload(channel, id, dlreq, err)
 	} else {
 		err := errors.New(resp.Status)
 		channel <- ProgressUpdate{id, ERROR, 0, err}

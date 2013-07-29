@@ -17,15 +17,6 @@ func exitProgram() {
 	}
 }
 
-func allDone(statii *[]DownloadStatus) bool {
-	for _, stat := range *statii {
-		if !stat.done {
-			return false
-		}
-	}
-	return true
-}
-
 func main () {
 	defer exitProgram()
 
@@ -36,8 +27,9 @@ func main () {
 	}
 
 	updateChan := make(chan ProgressUpdate)
+	statii := make([]DownloadStatus, len(requests))
 
-	err := termbox.Init()
+	err = termbox.Init()
 	if err != nil {
 		panic(err)
 	}
@@ -45,27 +37,22 @@ func main () {
 
 	displayPrintf(0, "Zhizhu Download Manager v%s\n", version)
 
-	statii := make([]DownloadStatus, len(requests))
-
 	for i, dlreq := range requests {
+		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
+		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0}
 		go runDownload(updateChan, i, dlreq)
-		displayPrintf(i + 1, "Starting download of %s\n", dlreq.actualfname)
-		statii[i] = DownloadStatus{dlreq.url, dlreq.actualfname, 0, 0, false}
 	}
 	go listenKeyEvents(updateChan)
 
+	termbox.Flush()
 
 	for {
 		update := <-updateChan
 
 		switch update.messType {
 		case SUCCESS:
-			actualfname := requests[update.id].actualfname
-			displayPrintf(update.id, "%s finished downloading\n", actualfname)
-			statii[update.id].done = true
-			if allDone(&statii) {
-				return
-			}
+			fname := statii[update.id].fname
+			displayPrintf(update.id + 1, "%s finished downloading\n", fname)
 		case ERROR:
 			displayPrintln(update.id + 1, update.err)
 			os.Exit(-1)
