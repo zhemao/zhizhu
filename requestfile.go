@@ -31,7 +31,9 @@ func makeRequest(url string, basename string) (DownloadRequest, error) {
 
 func loadRequests(reqFileName string) ([]DownloadRequest, error) {
 	reqFile, err := os.Open(reqFileName)
-	if err != nil {
+	if os.IsNotExist(err) {
+		return make([]DownloadRequest, 0), nil
+	} else if err != nil {
 		return nil, err
 	}
 	defer reqFile.Close()
