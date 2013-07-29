@@ -20,7 +20,7 @@ func exitProgram() {
 func main () {
 	defer exitProgram()
 
-	reqFileName := os.ExpandEnv("$HOME/.zhizhu/requests.txt")
+	reqFileName := os.ExpandEnv("$HOME/.zhizhu_requests.txt")
 	requests, err := loadRequests(reqFileName)
 	if err != nil {
 		panic(err)
