@@ -27,15 +27,13 @@ func allDone(statii *[]DownloadStatus) bool {
 }
 
 func main () {
-	if len(os.Args) < 2 {
-		fmt.Printf("Usage: %s request-file\n", os.Args[0])
-		os.Exit(-1)
-	}
-
 	defer exitProgram()
 
-	reqFileName := os.Args[1]
-	requests := loadRequests(reqFileName)
+	reqFileName := os.ExpandEnv("$HOME/.zhizhu/requests.txt")
+	requests, err := loadRequests(reqFileName)
+	if err != nil {
+		panic(err)
+	}
 
 	updateChan := make(chan ProgressUpdate)
 

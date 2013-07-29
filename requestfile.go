@@ -7,30 +7,31 @@ import (
 	"path"
 )
 
-func makeRequest(url string, fname string) DownloadRequest {
-	outfname := fname + ".part"
-	file, err := os.Open(outfname)
+func makeRequest(url string, basename string) (DownloadRequest, error) {
+	actualpath := path.Join(os.Getenv("HOME"), "Downloads", basename)
+	outpath := actualpath + ".part"
+	file, err := os.Open(outpath)
 	var initSize int64
 	if err != nil {
 		if os.IsNotExist(err) {
 			initSize = 0
 		} else {
-			panic(err)
+			return DownloadRequest{}, err
 		}
 	} else {
 		defer file.Close()
 		initSize, err = file.Seek(0, os.SEEK_END)
 		if err != nil {
-			panic(err)
+			return DownloadRequest{}, err
 		}
 	}
-	return DownloadRequest{url, outfname, fname, initSize}
+	return DownloadRequest{url, basename, outpath, actualpath, initSize}, nil
 }
 
-func loadRequests(reqFileName string) []DownloadRequest {
+func loadRequests(reqFileName string) ([]DownloadRequest, error) {
 	reqFile, err := os.Open(reqFileName)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer reqFile.Close()
 
@@ -43,13 +44,17 @@ func loadRequests(reqFileName string) []DownloadRequest {
 			continue
 		}
 		url := cols[0]
-		var fname string
+		var basename string
 		if len(cols) == 1 {
-			fname = path.Base(url)
+			basename = path.Base(url)
 		} else {
-			fname = cols[1]
+			basename = cols[1]
 		}
-		table = append(table, makeRequest(url, fname))
+		req, err := makeRequest(url, basename)
+		if err != nil {
+			return nil, err
+		}
+		table = append(table, req)
 	}
-	return table
+	return table, nil
 }

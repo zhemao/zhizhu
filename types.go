@@ -17,8 +17,9 @@ type ProgressUpdate struct {
 
 type DownloadRequest struct {
 	url string
-	outfname string
-	actualfname string
+	basename string
+	outpath string
+	actualpath string
 	initSize int64
 }
 
