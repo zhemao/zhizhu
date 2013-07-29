@@ -28,9 +28,8 @@ func main () {
 
 	updateChan := make(chan ProgressUpdate)
 	statii := make([]DownloadStatus, len(requests))
-	finished := make([]bool, len(requests))
 
-	defer cleanupReqFile(reqFileName, &requests, &finished)
+	defer cleanupReqFile(reqFileName, &statii)
 
 	err = termbox.Init()
 	if err != nil {
@@ -42,8 +41,7 @@ func main () {
 
 	for i, dlreq := range requests {
 		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
-		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0}
-		finished[i] = false
+		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0, false}
 		go runDownload(updateChan, i, dlreq)
 	}
 	go listenKeyEvents(updateChan)
@@ -57,7 +55,7 @@ func main () {
 		case SUCCESS:
 			fname := statii[update.id].fname
 			displayPrintf(update.id + 1, "%s finished downloading\n", fname)
-			finished[update.id] = true
+			statii[update.id].done = true
 		case ERROR:
 			displayPrintln(update.id + 1, update.err)
 			os.Exit(-1)

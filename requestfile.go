@@ -61,16 +61,14 @@ func loadRequests(reqFileName string) ([]DownloadRequest, error) {
 	}
 	return table, nil
 }
-func cleanupReqFile(reqFileName string,
-					requests *[]DownloadRequest,
-					finished *[]bool) {
+func cleanupReqFile(reqFileName string, requests *[]DownloadStatus) {
 	reqFile, err := os.Create(reqFileName)
 	if err != nil {
 		panic(err)
 	}
-	for i, req := range *requests {
-		if !(*finished)[i] {
-			fmt.Fprintf(reqFile, "%s %s\n", req.url, req.basename)
+	for _, req := range *requests {
+		if !req.done {
+			fmt.Fprintf(reqFile, "%s %s\n", req.url, req.fname)
 		}
 	}
 	reqFile.Close()

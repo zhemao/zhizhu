@@ -28,4 +28,5 @@ type DownloadStatus struct {
 	fname string
 	dlAmount int64
 	totalAmount int64
+	done bool
 }
