@@ -15,6 +15,7 @@ func finishDownload(updateChan chan ProgressUpdate,
 					id int, dlreq DownloadRequest, err error) {
 	if err != nil {
 		updateChan <- ProgressUpdate{id, ERROR, 0, err}
+		_ = os.Remove(dlreq.outpath)
 		return
 	}
 	err = os.Rename(dlreq.outpath, dlreq.actualpath)
