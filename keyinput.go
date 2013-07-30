@@ -15,9 +15,7 @@ func listenKeyEvents(channel chan termbox.Event) {
 	}
 }
 
-func handleSpecialKey(key termbox.Key,
-					  requests *[]DownloadRequest,
-					  statii *[]DownloadStatus) bool {
+func handleSpecialKey(key termbox.Key) bool {
 	switch key {
 	case termbox.KeyEsc:
 		return true
@@ -41,17 +39,15 @@ func initSelector() {
 }
 
 func handleKeyEvent(event termbox.Event,
-					ctrlChan *[]chan int,
-					requests *[]DownloadRequest,
-					statii *[]DownloadStatus) bool {
+					ctrlChan *[]chan int) bool {
 	if event.Type == termbox.EventKey {
 		switch event.Ch {
 		case 0:
-			return handleSpecialKey(event.Key, requests, statii)
+			return handleSpecialKey(event.Key)
 		case 'q':
 			return true
 		case 'j':
-			if select_id < len(*requests) - 1 {
+			if select_id < len(*ctrlChan) - 1 {
 				drawAtCursor(' ')
 				select_id += 1
 				drawAtCursor('+')
@@ -70,7 +66,6 @@ func handleKeyEvent(event termbox.Event,
 			drawIndicator(' ')
 		case 'c':
 			(*ctrlChan)[select_id] <- CANCEL
-			(*statii)[select_id].done = true
 			drawIndicator('X')
 		}
 	}

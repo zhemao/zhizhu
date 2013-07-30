@@ -73,7 +73,7 @@ func main () {
 		case update := <-updateChan:
 			handleProgressUpdate(update, &statii)
 		case event := <-keyEventChan:
-			if handleKeyEvent(event, &ctrlChan, &requests, &statii) {
+			if handleKeyEvent(event, &ctrlChan) {
 				return
 			}
 		}
