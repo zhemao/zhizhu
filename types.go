@@ -7,6 +7,12 @@ const (
 	PROGRESS = iota
 )
 
+const (
+	PAUSE = iota
+	RESUME = iota
+	CANCEL = iota
+)
+
 type ProgressUpdate struct {
 	id int
 	messType int

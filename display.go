@@ -11,6 +11,8 @@ const (
 	GB = 1024 * 1024 * 1024
 )
 
+const INDENT int = 3
+
 /*
  * Converts the integer size in bytes to a human-readable string
  */
@@ -38,19 +40,19 @@ func displayString(row int, startCol int, str string) {
 	}
 }
 
-func displayPrintln(row int, col int, obj interface{}) {
+func displayPrintln(row int, obj interface{}) {
 	rowStr := fmt.Sprintln(obj)
-	displayString(row, col, rowStr)
+	displayString(row, INDENT, rowStr)
 }
 
-func displayPrintf(row int, col int, format string, args...interface{}) {
+func displayPrintf(row int, format string, args...interface{}) {
 	rowStr := fmt.Sprintf(format, args...)
-	displayString(row, col, rowStr)
+	displayString(row, INDENT, rowStr)
 }
 
 func displayProgress(id int, status *DownloadStatus) {
 	percent := status.dlAmount * 100 / status.totalAmount
-	displayPrintf(id, 3, "%s %d%% | %s of %s downloaded\n",
+	displayPrintf(id, "%s %d%% | %s of %s downloaded\n",
 				  status.fname,
 				  percent,
 				  displaySize(status.dlAmount),

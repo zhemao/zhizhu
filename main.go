@@ -21,10 +21,10 @@ func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
 	switch update.messType {
 	case SUCCESS:
 		fname := (*statii)[update.id].fname
-		displayPrintf(update.id + 1, 3, "%s finished downloading\n", fname)
+		displayPrintf(update.id + 1, "%s finished downloading\n", fname)
 		(*statii)[update.id].done = true
 	case ERROR:
-		displayPrintln(update.id + 1, 3, update.err)
+		displayPrintln(update.id + 1, update.err)
 		os.Exit(-1)
 	case TOTALSIZE:
 		(*statii)[update.id].totalAmount = update.amount
@@ -45,6 +45,7 @@ func main () {
 
 	updateChan := make(chan ProgressUpdate)
 	keyEventChan := make(chan termbox.Event)
+	ctrlChan := make([]chan int, len(requests))
 	statii := make([]DownloadStatus, len(requests))
 
 	defer cleanupReqFile(reqFileName, &statii)
@@ -55,12 +56,14 @@ func main () {
 	}
 	defer termbox.Close()
 
-	displayPrintf(0, 0, "Zhizhu Download Manager v%s\n", version)
+	displayString(0, 0, fmt.Sprintf("Zhizhu Download Manager v%s\n", version))
+	initSelector()
 
 	for i, dlreq := range requests {
-		displayPrintf(i + 1, 3, "Starting download of %s\n", dlreq.basename)
+		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
 		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0, false}
-		go runDownload(updateChan, i, dlreq)
+		ctrlChan[i] = make(chan int, 1)
+		go runDownload(updateChan, ctrlChan[i], i, dlreq)
 	}
 	go listenKeyEvents(keyEventChan)
 
@@ -71,7 +74,7 @@ func main () {
 		case update := <-updateChan:
 			handleProgressUpdate(update, &statii)
 		case event := <-keyEventChan:
-			if handleKeyEvent(event, &requests, &statii) {
+			if handleKeyEvent(event, &ctrlChan, &requests, &statii) {
 				return
 			}
 		}
