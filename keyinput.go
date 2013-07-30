@@ -4,9 +4,9 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-var select_id int;
-const cursor_col int = 0;
-const indicator_col int = 1;
+var selectId int;
+const cursorCol int = 0;
+const indicatorCol int = 1;
 
 func listenKeyEvents(channel chan termbox.Event) {
 	for {
@@ -24,17 +24,17 @@ func handleSpecialKey(key termbox.Key) bool {
 }
 
 func drawAtCursor(ch rune) {
-	termbox.SetCell(cursor_col, select_id + 1, ch,
+	termbox.SetCell(cursorCol, selectId + 1, ch,
 					termbox.ColorDefault, termbox.ColorDefault)
 }
 
 func drawIndicator(ch rune) {
-	termbox.SetCell(indicator_col, select_id + 1, ch,
+	termbox.SetCell(indicatorCol, selectId + 1, ch,
 					termbox.ColorDefault, termbox.ColorDefault)
 }
 
 func initSelector() {
-	select_id = 0
+	selectId = 0
 	drawAtCursor('+')
 }
 
@@ -47,25 +47,25 @@ func handleKeyEvent(event termbox.Event,
 		case 'q':
 			return true
 		case 'j':
-			if select_id < len(*ctrlChan) - 1 {
+			if selectId < len(*ctrlChan) - 1 {
 				drawAtCursor(' ')
-				select_id += 1
+				selectId += 1
 				drawAtCursor('+')
 			}
 		case 'k':
-			if select_id > 0 {
+			if selectId > 0 {
 				drawAtCursor(' ')
-				select_id -= 1
+				selectId -= 1
 				drawAtCursor('+')
 			}
 		case 'p':
-			(*ctrlChan)[select_id] <- PAUSE
+			(*ctrlChan)[selectId] <- PAUSE
 			drawIndicator('P')
 		case 'r':
-			(*ctrlChan)[select_id] <- RESUME
+			(*ctrlChan)[selectId] <- RESUME
 			drawIndicator(' ')
 		case 'c':
-			(*ctrlChan)[select_id] <- CANCEL
+			(*ctrlChan)[selectId] <- CANCEL
 			drawIndicator('X')
 		}
 	}
