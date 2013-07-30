@@ -55,10 +55,10 @@ func main () {
 	}
 	defer termbox.Close()
 
-	displayPrintf(0, "Zhizhu Download Manager v%s\n", version)
+	displayPrintf(0, 0, "Zhizhu Download Manager v%s\n", version)
 
 	for i, dlreq := range requests {
-		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
+		displayPrintf(i + 1, 3, "Starting download of %s\n", dlreq.basename)
 		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0, false}
 		go runDownload(updateChan, i, dlreq)
 	}

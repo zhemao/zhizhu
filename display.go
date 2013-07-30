@@ -27,30 +27,30 @@ func displaySize(size int64) string {
 	return fmt.Sprintf("%.2fG", float64(size) / GB)
 }
 
-func displayString(row int, str string) {
+func displayString(row int, startCol int, str string) {
 	for col, ch := range str {
-		termbox.SetCell(col, row, ch,
+		termbox.SetCell(col + startCol, row, ch,
 						termbox.ColorDefault, termbox.ColorDefault)
 	}
 	width, _ := termbox.Size()
-	for col := len(str); col < width; col++ {
+	for col := len(str) + startCol; col < width; col++ {
 		termbox.SetCell(col, row, ' ', termbox.ColorDefault, termbox.ColorDefault)
 	}
 }
 
-func displayPrintln(row int, obj interface{}) {
+func displayPrintln(row int, col int, obj interface{}) {
 	rowStr := fmt.Sprintln(obj)
-	displayString(row, rowStr)
+	displayString(row, col, rowStr)
 }
 
-func displayPrintf(row int, format string, args...interface{}) {
+func displayPrintf(row int, col int, format string, args...interface{}) {
 	rowStr := fmt.Sprintf(format, args...)
-	displayString(row, rowStr)
+	displayString(row, col, rowStr)
 }
 
 func displayProgress(id int, status *DownloadStatus) {
 	percent := status.dlAmount * 100 / status.totalAmount
-	displayPrintf(id, "%s %d%% | %s of %s downloaded\n",
+	displayPrintf(id, 3, "%s %d%% | %s of %s downloaded\n",
 				  status.fname,
 				  percent,
 				  displaySize(status.dlAmount),
