@@ -18,7 +18,7 @@ func exitProgram() {
 	}
 }
 
-const oldWeight float64 = 0.8
+const oldWeight float64 = 0.6
 const newWeight float64 = 1.0 - oldWeight
 
 func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
@@ -34,23 +34,29 @@ func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
 		(*statii)[update.id].done = true
 	case TOTALSIZE:
 		(*statii)[update.id].totalAmount = update.amount
-		(*statii)[update.id].lastUpdate = time.Now().UnixNano()
 		displayProgress(update.id, &((*statii)[update.id]))
 	case PROGRESS:
 		status := &((*statii)[update.id])
-		curTime := time.Now().UnixNano()
-		oldTime := status.lastUpdate
-		oldAmount := status.dlAmount
-
-		bps := float64(update.amount - oldAmount) / float64(curTime - oldTime) * 1e9
-		oldSpeed := status.avgSpeed
-		newSpeed := oldWeight * oldSpeed + newWeight * bps
-
 		status.dlAmount = update.amount
-		status.lastUpdate = curTime
-		status.avgSpeed = newSpeed
+		displayProgress(update.id, status)
+	}
+}
 
-		displayProgress(update.id, &((*statii)[update.id]))
+func trackDownloadSpeed(statii *[]DownloadStatus) {
+	lastSizes := make([]int64, len(*statii))
+	tickChan := time.Tick(time.Second)
+
+	for {
+		select {
+		case <-tickChan:
+			for i, _ := range lastSizes {
+				status := &((*statii)[i])
+				newSpeed := status.dlAmount - lastSizes[i]
+				status.avgSpeed = int64(oldWeight * float64(status.avgSpeed) +
+										newWeight * float64(newSpeed))
+				lastSizes[i] = status.dlAmount
+			}
+		}
 	}
 }
 
@@ -81,12 +87,12 @@ func main () {
 
 	for i, dlreq := range requests {
 		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
-		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0,
-									time.Now().UnixNano(), 0.0, false}
+		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0, 0, false}
 		ctrlChan[i] = make(chan int, 1)
 		go runDownload(updateChan, ctrlChan[i], i, dlreq)
 	}
 	go listenKeyEvents(keyEventChan)
+	go trackDownloadSpeed(&statii)
 
 	termbox.Flush()
 

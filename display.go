@@ -74,11 +74,17 @@ func displayPrintf(row int, format string, args...interface{}) {
 
 func displayProgress(id int, status *DownloadStatus) {
 	percent := status.dlAmount * 100 / status.totalAmount
-	secsLeft := float64(status.totalAmount - status.dlAmount) / status.avgSpeed
+	var timeEstimate string
+	if status.avgSpeed == 0 {
+		timeEstimate = "unknown"
+	} else {
+		secsLeft := (status.totalAmount - status.dlAmount) / status.avgSpeed
+		timeEstimate = displayTimeLeft(secsLeft)
+	}
 	displayPrintf(id + 1, "%s %d%% | %s of %s downloaded | %s / s | %s left\n",
 				  status.fname, percent,
 				  displaySize(status.dlAmount),
 				  displaySize(status.totalAmount),
 			      displaySize(int64(status.avgSpeed)),
-				  displayTimeLeft(int64(secsLeft)))
+				  timeEstimate)
 }
