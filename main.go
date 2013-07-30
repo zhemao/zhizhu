@@ -32,7 +32,7 @@ func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
 		(*statii)[update.id].totalAmount = update.amount
 	case PROGRESS:
 		(*statii)[update.id].dlAmount = update.amount
-		displayProgress(update.id + 1, &((*statii)[update.id]))
+		displayProgress(update.id, &((*statii)[update.id]))
 	}
 }
 

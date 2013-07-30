@@ -54,7 +54,7 @@ func displayPrintf(row int, format string, args...interface{}) {
 
 func displayProgress(id int, status *DownloadStatus) {
 	percent := status.dlAmount * 100 / status.totalAmount
-	displayPrintf(id, "%s %d%% | %s of %s downloaded\n",
+	displayPrintf(id + 1, "%s %d%% | %s of %s downloaded\n",
 				  status.fname,
 				  percent,
 				  displaySize(status.dlAmount),
