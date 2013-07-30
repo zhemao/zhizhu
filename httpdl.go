@@ -11,77 +11,76 @@ import (
 
 const CHUNK_SIZE = 4096
 
-func finishDownload(updateChan chan ProgressUpdate,
-					id int, dlreq DownloadRequest, err error) {
-	if err != nil {
-		updateChan <- ProgressUpdate{id, ERROR, 0, err}
-		_ = os.Remove(dlreq.outpath)
-		return
+func finishDownload(updateChan chan ProgressUpdate, id int,
+					dlreq DownloadRequest, status int, err error) {
+	if status == CANCELED {
+		os.Remove(dlreq.outpath)
+	} else if status == SUCCESS {
+		err = os.Rename(dlreq.outpath, dlreq.actualpath)
+		if err != nil {
+			updateChan <- ProgressUpdate{id, ERROR, 0, err}
+			return
+		}
 	}
-	err = os.Rename(dlreq.outpath, dlreq.actualpath)
-	if err != nil {
-		updateChan <- ProgressUpdate{id, ERROR, 0, err}
-	} else {
-		updateChan <- ProgressUpdate{id, SUCCESS, 0, nil}
-	}
+	updateChan <- ProgressUpdate{id, status, 0, err}
 }
 
-func checkPause(ctrlChan chan int, oldPause bool) (bool, error) {
+func checkPause(ctrlChan chan int, oldPause bool) (bool, bool) {
 	select {
 	case command := <-ctrlChan:
 		switch command {
 		case PAUSE:
-			return true, nil
+			return true, false
 		case RESUME:
-			return false, nil
+			return false, false
 		case CANCEL:
-			return true, errors.New("Canceled by user")
+			return true, true
 		}
 	default:
-		return oldPause, nil
+		return oldPause, false
 	}
-	return oldPause, nil
+	return oldPause, false
 }
 
 func skipAhead(updateChan chan ProgressUpdate, ctrlChan chan int,
-				id int, body io.Reader, skipAmount int64) error {
+				id int, body io.Reader, skipAmount int64) (int, error) {
 	dlAmount := int64(0)
 	buf := make([]byte, CHUNK_SIZE)
 	limited := io.LimitReader(body, skipAmount)
 	pause := false
-	var err error
+	cancel := false
 	for dlAmount < skipAmount {
-		pause, err = checkPause(ctrlChan, pause)
-		if err != nil {
-			return err
+		pause, cancel = checkPause(ctrlChan, pause)
+		if cancel {
+			return CANCELED, nil
 		}
 		if pause {
 			time.Sleep(time.Second)
 		} else {
 			n, err := limited.Read(buf)
 			if err == io.EOF {
-				return nil
+				return SUCCESS, nil
 			} else if err != nil {
-				return err
+				return ERROR, err
 			}
 			dlAmount += int64(n)
 			updateChan <- ProgressUpdate{id, PROGRESS, dlAmount, nil}
 		}
 	}
-	return nil
+	return SUCCESS, nil
 }
 
 func downloadFile(updateChan chan ProgressUpdate,
 				  ctrlChan chan int,
 				  id int, body io.Reader,
-				  out *os.File, initSize int64) error {
+				  out *os.File, initSize int64) (int, error) {
 	dlAmount := initSize
 	pause := false
-	var err error
+	cancel := false
 	for {
-		pause, err = checkPause(ctrlChan, pause)
-		if err != nil {
-			return err
+		pause, cancel = checkPause(ctrlChan, pause)
+		if cancel {
+			return CANCELED, nil
 		}
 		if pause {
 			time.Sleep(time.Second)
@@ -93,9 +92,9 @@ func downloadFile(updateChan chan ProgressUpdate,
 			}
 
 			if err == io.EOF {
-				return nil
+				return SUCCESS, nil
 			} else if err != nil {
-				return err
+				return ERROR, err
 			}
 		}
 	}
@@ -156,22 +155,28 @@ func runDownload(updateChan chan ProgressUpdate, ctrlChan chan int,
 
 	if resp.StatusCode == http.StatusOK {
 		if resp.ContentLength == dlreq.initSize {
-			finishDownload(updateChan, id, dlreq, nil)
+			finishDownload(updateChan, id, dlreq, SUCCESS, nil)
 			return
 		}
 		updateChan <- ProgressUpdate{id, TOTALSIZE, resp.ContentLength, nil}
-		skipAhead(updateChan, ctrlChan, id, resp.Body, dlreq.initSize)
-		err := downloadFile(updateChan, ctrlChan, id, resp.Body, out, dlreq.initSize)
-		finishDownload(updateChan, id, dlreq, err)
+		status, err := skipAhead(updateChan, ctrlChan, id,
+								 resp.Body, dlreq.initSize)
+		if err != nil {
+			finishDownload(updateChan, id, dlreq, status, err)
+		}
+		status, err = downloadFile(updateChan, ctrlChan, id,
+								   resp.Body, out, dlreq.initSize)
+		finishDownload(updateChan, id, dlreq, status, err)
 	} else if resp.StatusCode == http.StatusPartialContent {
 		totalSize := resp.ContentLength + dlreq.initSize
 		if totalSize == 0 {
-			finishDownload(updateChan, id, dlreq, nil)
+			finishDownload(updateChan, id, dlreq, SUCCESS, nil)
 			return
 		}
 		updateChan <- ProgressUpdate{id, TOTALSIZE, totalSize, nil}
-		err := downloadFile(updateChan, ctrlChan, id, resp.Body, out, dlreq.initSize)
-		finishDownload(updateChan, id, dlreq, err)
+		status, err := downloadFile(updateChan, ctrlChan, id,
+									resp.Body, out, dlreq.initSize)
+		finishDownload(updateChan, id, dlreq, status, err)
 	} else {
 		err := errors.New(resp.Status)
 		updateChan <- ProgressUpdate{id, ERROR, 0, err}

@@ -25,6 +25,9 @@ func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
 		(*statii)[update.id].done = true
 	case ERROR:
 		displayPrintln(update.id + 1, update.err)
+	case CANCELED:
+		displayPrintln(update.id + 1, "Canceled")
+		(*statii)[update.id].done = true
 	case TOTALSIZE:
 		(*statii)[update.id].totalAmount = update.amount
 	case PROGRESS:
