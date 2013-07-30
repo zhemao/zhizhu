@@ -34,5 +34,7 @@ type DownloadStatus struct {
 	fname string
 	dlAmount int64
 	totalAmount int64
+	lastUpdate int64
+	avgSpeed float64
 	done bool
 }

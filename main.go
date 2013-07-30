@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 	"github.com/nsf/termbox-go"
 )
 
@@ -17,6 +18,9 @@ func exitProgram() {
 	}
 }
 
+const oldWeight float64 = 0.8
+const newWeight float64 = 1.0 - oldWeight
+
 func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
 	switch update.messType {
 	case SUCCESS:
@@ -30,8 +34,22 @@ func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
 		(*statii)[update.id].done = true
 	case TOTALSIZE:
 		(*statii)[update.id].totalAmount = update.amount
+		(*statii)[update.id].lastUpdate = time.Now().UnixNano()
+		displayProgress(update.id, &((*statii)[update.id]))
 	case PROGRESS:
-		(*statii)[update.id].dlAmount = update.amount
+		status := &((*statii)[update.id])
+		curTime := time.Now().UnixNano()
+		oldTime := status.lastUpdate
+		oldAmount := status.dlAmount
+
+		bps := float64(update.amount - oldAmount) / float64(curTime - oldTime) * 1e9
+		oldSpeed := status.avgSpeed
+		newSpeed := oldWeight * oldSpeed + newWeight * bps
+
+		status.dlAmount = update.amount
+		status.lastUpdate = curTime
+		status.avgSpeed = newSpeed
+
 		displayProgress(update.id, &((*statii)[update.id]))
 	}
 }
@@ -63,7 +81,8 @@ func main () {
 
 	for i, dlreq := range requests {
 		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
-		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0, false}
+		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0,
+									time.Now().UnixNano(), 0.0, false}
 		ctrlChan[i] = make(chan int, 1)
 		go runDownload(updateChan, ctrlChan[i], i, dlreq)
 	}
