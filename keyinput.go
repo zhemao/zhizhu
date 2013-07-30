@@ -4,14 +4,21 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-func listenKeyEvents(channel chan ProgressUpdate) {
+func listenKeyEvents(channel chan termbox.Event) {
 	for {
 		event := termbox.PollEvent()
-		if event.Type == termbox.EventKey {
-			switch event.Key {
-			case termbox.KeyEsc, termbox.KeyCtrlQ:
-				channel <- ProgressUpdate{-1, QUIT, 0, nil}
-			}
+		channel <- event;
+	}
+}
+
+func handleKeyEvent(event termbox.Event,
+					requests *[]DownloadRequest,
+					statii *[]DownloadStatus) bool {
+	if event.Type == termbox.EventKey {
+		switch event.Key {
+		case termbox.KeyEsc:
+			return true
 		}
 	}
+	return false
 }

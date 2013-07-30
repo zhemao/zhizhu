@@ -17,6 +17,23 @@ func exitProgram() {
 	}
 }
 
+func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
+	switch update.messType {
+	case SUCCESS:
+		fname := (*statii)[update.id].fname
+		displayPrintf(update.id + 1, 3, "%s finished downloading\n", fname)
+		(*statii)[update.id].done = true
+	case ERROR:
+		displayPrintln(update.id + 1, 3, update.err)
+		os.Exit(-1)
+	case TOTALSIZE:
+		(*statii)[update.id].totalAmount = update.amount
+	case PROGRESS:
+		(*statii)[update.id].dlAmount = update.amount
+		displayProgress(update.id + 1, &((*statii)[update.id]))
+	}
+}
+
 func main () {
 	defer exitProgram()
 
@@ -27,6 +44,7 @@ func main () {
 	}
 
 	updateChan := make(chan ProgressUpdate)
+	keyEventChan := make(chan termbox.Event)
 	statii := make([]DownloadStatus, len(requests))
 
 	defer cleanupReqFile(reqFileName, &statii)
@@ -44,29 +62,20 @@ func main () {
 		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0, false}
 		go runDownload(updateChan, i, dlreq)
 	}
-	go listenKeyEvents(updateChan)
+	go listenKeyEvents(keyEventChan)
 
 	termbox.Flush()
 
 	for {
-		update := <-updateChan
-
-		switch update.messType {
-		case SUCCESS:
-			fname := statii[update.id].fname
-			displayPrintf(update.id + 1, "%s finished downloading\n", fname)
-			statii[update.id].done = true
-		case ERROR:
-			displayPrintln(update.id + 1, update.err)
-			os.Exit(-1)
-		case TOTALSIZE:
-			statii[update.id].totalAmount = update.amount
-		case PROGRESS:
-			statii[update.id].dlAmount = update.amount
-			displayProgress(update.id + 1, &(statii[update.id]))
-		case QUIT:
-			return
+		select {
+		case update := <-updateChan:
+			handleProgressUpdate(update, &statii)
+		case event := <-keyEventChan:
+			if handleKeyEvent(event, &requests, &statii) {
+				return
+			}
 		}
+
 		termbox.Flush()
 	}
 }

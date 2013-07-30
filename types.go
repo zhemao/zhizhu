@@ -5,7 +5,6 @@ const (
 	ERROR = iota
 	TOTALSIZE = iota
 	PROGRESS = iota
-	QUIT = iota
 )
 
 type ProgressUpdate struct {
