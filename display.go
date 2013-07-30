@@ -30,11 +30,13 @@ func displaySize(size int64) string {
 }
 
 func displayString(row int, startCol int, str string) {
-	for col, ch := range str {
-		termbox.SetCell(col + startCol, row, ch,
-						termbox.ColorDefault, termbox.ColorDefault)
-	}
 	width, _ := termbox.Size()
+	for col, ch := range str {
+		if col < width {
+			termbox.SetCell(col + startCol, row, ch,
+							termbox.ColorDefault, termbox.ColorDefault)
+		}
+	}
 	for col := len(str) + startCol; col < width; col++ {
 		termbox.SetCell(col, row, ' ', termbox.ColorDefault, termbox.ColorDefault)
 	}
