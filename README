@@ -1,1 +1,5 @@
-GODLM - Daemonized Download Manager written in Go
+Zhizhu - Terminal-based Download Manager written in Go
+
+Zhizhu is a curses based download manager written in Go. I wrote it in order
+to experiment with Go's concurrency model. Eventually, I plan on making it
+a daemon which can be controlled from a web UI, a la transmission-daemon.
