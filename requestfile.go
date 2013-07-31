@@ -61,6 +61,7 @@ func loadRequests(reqFileName string) ([]DownloadRequest, error) {
 	}
 	return table, nil
 }
+
 func cleanupReqFile(reqFileName string, requests *[]DownloadStatus) {
 	reqFile, err := os.Create(reqFileName)
 	if err != nil {
@@ -68,9 +69,8 @@ func cleanupReqFile(reqFileName string, requests *[]DownloadStatus) {
 	}
 	for _, req := range *requests {
 		if !req.done {
-			fmt.Fprintf(reqFile, "%s %s\n", req.url, req.fname)
+			fmt.Fprintf(reqFile, "%s\n", req.url)
 		}
 	}
 	reqFile.Close()
-
 }

@@ -83,7 +83,7 @@ func main () {
 	defer termbox.Close()
 
 	displayString(0, 0, fmt.Sprintf("Zhizhu Download Manager v%s\n", version))
-	initSelector()
+	initKeyInput()
 
 	for i, dlreq := range requests {
 		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
@@ -101,7 +101,7 @@ func main () {
 		case update := <-updateChan:
 			handleProgressUpdate(update, &statii)
 		case event := <-keyEventChan:
-			if handleKeyEvent(event, &ctrlChan) {
+			if handleKeyEvent(event, updateChan, &ctrlChan, &requests, &statii) {
 				return
 			}
 		}
