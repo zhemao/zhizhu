@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/nsf/termbox-go"
 	"os"
 	"time"
-	"github.com/nsf/termbox-go"
 )
 
 const version string = "0.1.0"
@@ -25,12 +25,12 @@ func handleProgressUpdate(update ProgressUpdate, statii *[]DownloadStatus) {
 	switch update.messType {
 	case SUCCESS:
 		fname := (*statii)[update.id].fname
-		displayPrintf(update.id + 1, "%s finished downloading\n", fname)
+		displayPrintf(update.id+1, "%s finished downloading\n", fname)
 		(*statii)[update.id].done = true
 	case ERROR:
-		displayPrintln(update.id + 1, update.err)
+		displayPrintln(update.id+1, update.err)
 	case CANCELED:
-		displayPrintln(update.id + 1, "Canceled")
+		displayPrintln(update.id+1, "Canceled")
 		(*statii)[update.id].done = true
 	case TOTALSIZE:
 		(*statii)[update.id].totalAmount = update.amount
@@ -52,15 +52,15 @@ func trackDownloadSpeed(statii *[]DownloadStatus) {
 			for i, _ := range lastSizes {
 				status := &((*statii)[i])
 				newSpeed := status.dlAmount - lastSizes[i]
-				status.avgSpeed = int64(oldWeight * float64(status.avgSpeed) +
-										newWeight * float64(newSpeed))
+				status.avgSpeed = int64(oldWeight*float64(status.avgSpeed) +
+					newWeight*float64(newSpeed))
 				lastSizes[i] = status.dlAmount
 			}
 		}
 	}
 }
 
-func main () {
+func main() {
 	defer exitProgram()
 
 	reqFileName := os.ExpandEnv("$HOME/.zhizhu_requests.txt")
@@ -86,7 +86,7 @@ func main () {
 	initKeyInput()
 
 	for i, dlreq := range requests {
-		displayPrintf(i + 1, "Starting download of %s\n", dlreq.basename)
+		displayPrintf(i+1, "Starting download of %s\n", dlreq.basename)
 		statii[i] = DownloadStatus{dlreq.url, dlreq.basename, 0, 0, 0, false}
 		ctrlChan[i] = make(chan int, 1)
 		go runDownload(updateChan, ctrlChan[i], i, dlreq)

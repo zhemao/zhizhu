@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"io"
-	"time"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"time"
 )
 
 const CHUNK_SIZE = 4096
 
 func finishDownload(updateChan chan ProgressUpdate, id int,
-					dlreq DownloadRequest, status int, err error) {
+	dlreq DownloadRequest, status int, err error) {
 	if status == CANCELED {
 		os.Remove(dlreq.outpath)
 	} else if status == SUCCESS {
@@ -43,7 +43,7 @@ func checkPause(ctrlChan chan int, oldPause bool) (bool, bool) {
 }
 
 func skipAhead(updateChan chan ProgressUpdate, ctrlChan chan int,
-				id int, body io.Reader, skipAmount int64) (int, error) {
+	id int, body io.Reader, skipAmount int64) (int, error) {
 	dlAmount := int64(0)
 	buf := make([]byte, CHUNK_SIZE)
 	limited := io.LimitReader(body, skipAmount)
@@ -71,9 +71,9 @@ func skipAhead(updateChan chan ProgressUpdate, ctrlChan chan int,
 }
 
 func downloadFile(updateChan chan ProgressUpdate,
-				  ctrlChan chan int,
-				  id int, body io.Reader,
-				  out *os.File, initSize int64) (int, error) {
+	ctrlChan chan int,
+	id int, body io.Reader,
+	out *os.File, initSize int64) (int, error) {
 	dlAmount := initSize
 	pause := false
 	cancel := false
@@ -102,7 +102,7 @@ func downloadFile(updateChan chan ProgressUpdate,
 
 func makeHttpRequest(url string, initSize int64) (*http.Response, error) {
 	client := &http.Client{
-		CheckRedirect: func (req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if initSize > 0 {
 				req.Header.Add("Range", fmt.Sprintf("bytes=%d-", initSize))
 			}
@@ -123,7 +123,7 @@ func makeHttpRequest(url string, initSize int64) (*http.Response, error) {
 }
 
 func runDownload(updateChan chan ProgressUpdate, ctrlChan chan int,
-				 id int, dlreq DownloadRequest) {
+	id int, dlreq DownloadRequest) {
 	var out *os.File
 
 	// if the file has already been downloaded, do nothing
@@ -138,7 +138,7 @@ func runDownload(updateChan chan ProgressUpdate, ctrlChan chan int,
 		out, err = os.Create(dlreq.outpath)
 	} else {
 		// otherwise, append to the old one
-		out, err = os.OpenFile(dlreq.outpath, os.O_WRONLY | os.O_APPEND, 0644)
+		out, err = os.OpenFile(dlreq.outpath, os.O_WRONLY|os.O_APPEND, 0644)
 	}
 	if err != nil {
 		updateChan <- ProgressUpdate{id, ERROR, 0, err}
@@ -160,12 +160,12 @@ func runDownload(updateChan chan ProgressUpdate, ctrlChan chan int,
 		}
 		updateChan <- ProgressUpdate{id, TOTALSIZE, resp.ContentLength, nil}
 		status, err := skipAhead(updateChan, ctrlChan, id,
-								 resp.Body, dlreq.initSize)
+			resp.Body, dlreq.initSize)
 		if err != nil {
 			finishDownload(updateChan, id, dlreq, status, err)
 		}
 		status, err = downloadFile(updateChan, ctrlChan, id,
-								   resp.Body, out, dlreq.initSize)
+			resp.Body, out, dlreq.initSize)
 		finishDownload(updateChan, id, dlreq, status, err)
 	} else if resp.StatusCode == http.StatusPartialContent {
 		totalSize := resp.ContentLength + dlreq.initSize
@@ -175,7 +175,7 @@ func runDownload(updateChan chan ProgressUpdate, ctrlChan chan int,
 		}
 		updateChan <- ProgressUpdate{id, TOTALSIZE, totalSize, nil}
 		status, err := downloadFile(updateChan, ctrlChan, id,
-									resp.Body, out, dlreq.initSize)
+			resp.Body, out, dlreq.initSize)
 		finishDownload(updateChan, id, dlreq, status, err)
 	} else {
 		err := errors.New(resp.Status)

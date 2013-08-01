@@ -5,18 +5,20 @@ import (
 	"path"
 )
 
-var selectId int;
-var inputCol int;
-const cursorCol int = 0;
-const indicatorCol int = 1;
+var selectId int
+var inputCol int
+
+const cursorCol int = 0
+const indicatorCol int = 1
 const bufferSize int = 128
+
 var insertMode bool
 var inputBuffer []rune
 
 func listenKeyEvents(channel chan termbox.Event) {
 	for {
 		event := termbox.PollEvent()
-		channel <- event;
+		channel <- event
 	}
 }
 
@@ -24,8 +26,8 @@ func exitInsertMode() {
 	insertMode = false
 	width, height := termbox.Size()
 	for col := 0; col < width; col++ {
-		termbox.SetCell(col, height - 1, ' ',
-						termbox.ColorDefault, termbox.ColorDefault)
+		termbox.SetCell(col, height-1, ' ',
+			termbox.ColorDefault, termbox.ColorDefault)
 	}
 	inputCol = 0
 	termbox.HideCursor()
@@ -44,31 +46,31 @@ func handleSpecialKey(key termbox.Key) string {
 }
 
 func drawAtCursor(ch rune) {
-	termbox.SetCell(cursorCol, selectId + 1, ch,
-					termbox.ColorDefault, termbox.ColorDefault)
+	termbox.SetCell(cursorCol, selectId+1, ch,
+		termbox.ColorDefault, termbox.ColorDefault)
 }
 
 func drawIndicator(ch rune) {
-	termbox.SetCell(indicatorCol, selectId + 1, ch,
-					termbox.ColorDefault, termbox.ColorDefault)
+	termbox.SetCell(indicatorCol, selectId+1, ch,
+		termbox.ColorDefault, termbox.ColorDefault)
 }
 
 func initKeyInput() {
 	selectId = 0
 	drawAtCursor('+')
-	insertMode = false;
-	inputCol = 0;
+	insertMode = false
+	inputCol = 0
 	inputBuffer = make([]rune, bufferSize)
 }
 
 func handleNonInsertMode(event termbox.Event,
-						 ctrlChan *[]chan int,
-						 statii *[]DownloadStatus) bool {
+	ctrlChan *[]chan int,
+	statii *[]DownloadStatus) bool {
 	switch event.Ch {
 	case 'q':
 		return true
 	case 'j':
-		if selectId < len(*ctrlChan) - 1 {
+		if selectId < len(*ctrlChan)-1 {
 			drawAtCursor(' ')
 			selectId += 1
 			drawAtCursor('+')
@@ -91,17 +93,17 @@ func handleNonInsertMode(event termbox.Event,
 		drawIndicator('X')
 	case 'a':
 		_, height := termbox.Size()
-		termbox.SetCursor(inputCol, height - 1)
+		termbox.SetCursor(inputCol, height-1)
 		insertMode = true
 	}
 	return false
 }
 
 func handleInsertMode(event termbox.Event,
-					  updateChan chan ProgressUpdate,
-					  ctrlChan *[]chan int,
-					  requests *[]DownloadRequest,
-					  statii *[]DownloadStatus) {
+	updateChan chan ProgressUpdate,
+	ctrlChan *[]chan int,
+	requests *[]DownloadRequest,
+	statii *[]DownloadStatus) {
 	switch event.Ch {
 	case 0:
 		url := handleSpecialKey(event.Key)
@@ -111,33 +113,33 @@ func handleInsertMode(event termbox.Event,
 			dlreq, err := makeRequest(url, basename)
 			_, height := termbox.Size()
 			if err != nil {
-				displayPrintln(height - 2, err)
+				displayPrintln(height-2, err)
 				return
 			}
-			displayPrintln(height - 2, "")
+			displayPrintln(height-2, "")
 			*requests = append(*requests, dlreq)
 			*ctrlChan = append(*ctrlChan, make(chan int, 1))
 			*statii = append(*statii, DownloadStatus{url, basename, 0, 0, 0, false})
-			displayPrintf(id + 1, "Starting download of %s\n", basename)
+			displayPrintf(id+1, "Starting download of %s\n", basename)
 			go runDownload(updateChan, (*ctrlChan)[id], id, dlreq)
 		}
 	default:
 		if inputCol < bufferSize {
 			_, height := termbox.Size()
 			inputBuffer[inputCol] = event.Ch
-			termbox.SetCell(inputCol, height - 1, event.Ch,
-							termbox.ColorDefault, termbox.ColorDefault)
+			termbox.SetCell(inputCol, height-1, event.Ch,
+				termbox.ColorDefault, termbox.ColorDefault)
 			inputCol = inputCol + 1
-			termbox.SetCursor(inputCol, height - 1)
+			termbox.SetCursor(inputCol, height-1)
 		}
 	}
 }
 
 func handleKeyEvent(event termbox.Event,
-					updateChan chan ProgressUpdate,
-					ctrlChan *[]chan int,
-					requests *[]DownloadRequest,
-					statii *[]DownloadStatus) bool {
+	updateChan chan ProgressUpdate,
+	ctrlChan *[]chan int,
+	requests *[]DownloadRequest,
+	statii *[]DownloadStatus) bool {
 	if event.Type == termbox.EventKey {
 		if insertMode {
 			handleInsertMode(event, updateChan, ctrlChan, requests, statii)

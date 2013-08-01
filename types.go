@@ -1,39 +1,39 @@
 package main
 
 const (
-	SUCCESS = iota
-	ERROR = iota
+	SUCCESS   = iota
+	ERROR     = iota
 	TOTALSIZE = iota
-	PROGRESS = iota
-	CANCELED = iota
+	PROGRESS  = iota
+	CANCELED  = iota
 )
 
 const (
-	PAUSE = iota
+	PAUSE  = iota
 	RESUME = iota
 	CANCEL = iota
 )
 
 type ProgressUpdate struct {
-	id int
+	id       int
 	messType int
-	amount int64
-	err error
+	amount   int64
+	err      error
 }
 
 type DownloadRequest struct {
-	url string
-	basename string
-	outpath string
+	url        string
+	basename   string
+	outpath    string
 	actualpath string
-	initSize int64
+	initSize   int64
 }
 
 type DownloadStatus struct {
-	url string
-	fname string
-	dlAmount int64
+	url         string
+	fname       string
+	dlAmount    int64
 	totalAmount int64
-	avgSpeed int64
-	done bool
+	avgSpeed    int64
+	done        bool
 }

@@ -13,7 +13,7 @@ const (
 
 const (
 	HOUR = 3600
-	MIN = 60
+	MIN  = 60
 )
 
 const INDENT int = 3
@@ -26,12 +26,12 @@ func displaySize(size int64) string {
 		return fmt.Sprintf("%5dB", size)
 	}
 	if size < MB {
-		return fmt.Sprintf("%5.2fK", float64(size) / KB)
+		return fmt.Sprintf("%5.2fK", float64(size)/KB)
 	}
 	if size < GB {
-		return fmt.Sprintf("%5.2fM", float64(size) / MB)
+		return fmt.Sprintf("%5.2fM", float64(size)/MB)
 	}
-	return fmt.Sprintf("%5.2fG", float64(size) / GB)
+	return fmt.Sprintf("%5.2fG", float64(size)/GB)
 }
 
 func displayTimeLeft(timeLeft int64) string {
@@ -53,8 +53,8 @@ func displayString(row int, startCol int, str string) {
 	width, _ := termbox.Size()
 	for col, ch := range str {
 		if col < width {
-			termbox.SetCell(col + startCol, row, ch,
-							termbox.ColorDefault, termbox.ColorDefault)
+			termbox.SetCell(col+startCol, row, ch,
+				termbox.ColorDefault, termbox.ColorDefault)
 		}
 	}
 	for col := len(str) + startCol; col < width; col++ {
@@ -67,7 +67,7 @@ func displayPrintln(row int, obj interface{}) {
 	displayString(row, INDENT, rowStr)
 }
 
-func displayPrintf(row int, format string, args...interface{}) {
+func displayPrintf(row int, format string, args ...interface{}) {
 	rowStr := fmt.Sprintf(format, args...)
 	displayString(row, INDENT, rowStr)
 }
@@ -81,10 +81,10 @@ func displayProgress(id int, status *DownloadStatus) {
 		secsLeft := (status.totalAmount - status.dlAmount) / status.avgSpeed
 		timeEstimate = displayTimeLeft(secsLeft)
 	}
-	displayPrintf(id + 1, "%s %d%% | %s of %s downloaded | %s / s | %s left\n",
-				  status.fname, percent,
-				  displaySize(status.dlAmount),
-				  displaySize(status.totalAmount),
-			      displaySize(int64(status.avgSpeed)),
-				  timeEstimate)
+	displayPrintf(id+1, "%s %d%% | %s of %s downloaded | %s / s | %s left\n",
+		status.fname, percent,
+		displaySize(status.dlAmount),
+		displaySize(status.totalAmount),
+		displaySize(int64(status.avgSpeed)),
+		timeEstimate)
 }

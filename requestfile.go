@@ -1,11 +1,11 @@
 package main
 
 import (
-	"os"
 	"bufio"
-	"strings"
-	"path"
 	"fmt"
+	"os"
+	"path"
+	"strings"
 )
 
 func makeRequest(url string, basename string) (DownloadRequest, error) {
